@@ -41,6 +41,23 @@ def edge_detector(press_raw: bool, button_state: State):
     button_state.current = press_raw
     return press_raw and (not button_state.previous)  # return press_pulse
 
+# MONITOR GROUP A: EDGE DETECTOR CORRECTNESS
+def monitor_edge_detector(k: int, press_raw: bool, press_pulse: bool, button_state: State):
+    """Check A1, A2, A3 for edge detection correctness."""
+    # --- A1 ---
+    expected_pulse = press_raw and (not button_state.previous)
+    if press_pulse != expected_pulse:
+        print(f"[A1 FAIL] Tick {k}: press_pulse={press_pulse}, expected {expected_pulse}")
+    # --- A2 ---
+    if k > 0:
+        expected_prev = press_raw_history[k-1]
+        if button_state.previous != expected_prev:
+            print(f"[A2 FAIL] Tick {k}: prev={button_state.previous}, expected {expected_prev}")
+    # --- A3 ---
+    if k > 0 and press_raw_history[k-1] and press_raw:
+        if press_pulse != False:
+            print(f"[A3 FAIL] Tick {k}: press_pulse={press_pulse} while button held")
+
 # LAMP CONTROLLER HELPERS
 def switch_mode_to_on(press_pulse: bool, lamp_state: State):
     if press_pulse:
@@ -88,14 +105,21 @@ def run_lamp_trace(press_raw: list[bool], motion: list[bool]):
     movement_timer = State(INITIAL_TIMER_VALUE, INITIAL_TIMER_VALUE)    # aka x
     lamp_state = State(Mode.OFF, Mode.OFF)                              # aka mode
 
+    global press_raw_history
+    press_raw_history = press_raw.copy()  # needed for monitor checks
+
     for k in range(len(press_raw)):
         print(f"Tick: {k}")
+        # compute press pulse
         press_pulse = edge_detector(press_raw[k], button_state)
 
-        # update lamp mode and movement timer based on press_pulse and motion inputs
+        # --- MONITOR CHECKS ---
+        monitor_edge_detector(k, press_raw[k], press_pulse, button_state)
+
+        # update lamp mode and movement timer
         lamp_controller(press_pulse, motion[k], movement_timer, lamp_state)
 
-        # print out variable and states for debugging purposes
+        # print out variable and states
         print(f"- Press pulse: {press_pulse}\n- Timer: {movement_timer.current}\n- Lamp: {lamp_state.current.name}\n")
 
 # DEFINE INPUTS AND RUN TRACES

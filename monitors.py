@@ -97,6 +97,7 @@ def switch_mode_to_auto(press_pulse: bool, lamp_state: State):
 def switch_mode_to_off(press_pulse: bool, movement_timer, lamp_state: State):
     if press_pulse or movement_timer.current == 0:
         lamp_state.current = Mode.OFF
+        movement_timer.current = 0
 
 def set_movement_timer(motion, movement_timer):
     if motion:
@@ -118,9 +119,11 @@ def compute_lamp_output(mode: Mode, movement_timer: int):
 def lamp_controller(press_pulse: bool, motion: bool, movement_timer: State, lamp_state: State):
     match lamp_state.current:
         case Mode.OFF:
+            movement_timer.current = 0
             # turns on if press_pulse is enabled, otherwise, remains off
             switch_mode_to_on(press_pulse, lamp_state)
-            movement_timer.current = 0
+            if lamp_state.current == Mode.ON:
+                movement_timer.current = INITIAL_TIMER_VALUE
 
         case Mode.ON:
             # switches to auto if press_pulse is enabled, otherwise, remains on
@@ -193,7 +196,7 @@ def main() -> None:
         True,       # third press → lamp OFF
         False       # button released
     ]
-    t2_motion: list[bool] = [False] * 8
+    t2_motion: list[bool] = [False] * 6
 
     print("Trace T2: turn off via early press -------------------------------------------------------\n")
     run_lamp_trace(t2_press_raw, t2_motion)

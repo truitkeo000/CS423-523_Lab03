@@ -1,4 +1,6 @@
 from enum import Enum
+from selectors import SelectSelector
+from unittest import expectedFailure
 
 # CS 423/523 Lab 3
 # Deliverable 1: Runtime monitors
@@ -58,6 +60,31 @@ def monitor_edge_detector(k: int, press_raw: bool, press_pulse: bool, button_sta
         if press_pulse != False:
             print(f"[A3 FAIL] Tick {k}: press_pulse={press_pulse} while button held")
 
+# MONITOR GROUP B: MODE/OUTPUT CONSISTENCY (INVARIANTS)
+def monitor_output_consistency(k: int, mode: Mode, lamp: int, movement_timer: int):
+    # --- B1 ---
+    if mode == Mode.OFF and lamp != 0:
+        print(f"[B1 FAIL] TICK {k}: mode=OFF, expected lamp=0, but observed lamp={lamp}\n")
+
+    # --- B2 ---
+    if mode == Mode.ON and lamp != 1:
+        print(f"[B2 FAIL] TICK {k}: mode=ON, expected lamp=1, but observed lamp={lamp}\n")
+
+    # --- B3 ---
+    expected: int = 1 if movement_timer > 0 else 0
+    if mode == Mode.AUTO and lamp != expected:
+      print(f"[B3 FAIL] TICK {k}: mode=AUTO, movement_timer={movement_timer}, expected={expected}, but observed lamp={lamp}\n")
+
+# MONITOR GROUP C: NUMERIC SAFETY (INVARIANTS)
+def monitor_numeric_safety(k: int, movement_timer: int, mode: Mode):
+    # --- C1 ---
+    if movement_timer < 0 or  movement_timer > 10:
+        print(f"[C1 FAIL] TICK {k}: expected movement_timer to be between 0 and 10, but observed movement_timer={movement_timer}\n")
+
+    # --- C2 ---
+    if mode == Mode.OFF and movement_timer != 0:
+        print(f"[C2 FAIL] TICK {k}: mode=OFF, expected movement_timer=0, but observed movement_timer={movement_timer}\n")
+
 # LAMP CONTROLLER HELPERS
 def switch_mode_to_on(press_pulse: bool, lamp_state: State):
     if press_pulse:
@@ -77,13 +104,23 @@ def set_movement_timer(motion, movement_timer):
     else:
         movement_timer.current = max(movement_timer.current - 1, 0)
 
+# return lamp[k] as 0/1 based on mode and timer
+def compute_lamp_output(mode: Mode, movement_timer: int):
+    match mode:
+        case Mode.OFF:
+            return 0
+        case Mode.ON:
+            return 1
+        case Mode.AUTO:
+                return 1 if movement_timer > 0 else 0
+
 # LAMP CONTROLLER
 def lamp_controller(press_pulse: bool, motion: bool, movement_timer: State, lamp_state: State):
     match lamp_state.current:
         case Mode.OFF:
             # turns on if press_pulse is enabled, otherwise, remains off
             switch_mode_to_on(press_pulse, lamp_state)
-            movement_timer.current = INITIAL_TIMER_VALUE
+            movement_timer.current = 0
 
         case Mode.ON:
             # switches to auto if press_pulse is enabled, otherwise, remains on
@@ -113,11 +150,18 @@ def run_lamp_trace(press_raw: list[bool], motion: list[bool]):
         # compute press pulse
         press_pulse = edge_detector(press_raw[k], button_state)
 
-        # --- MONITOR CHECKS ---
+        # --- MONITOR GROUP A ---
         monitor_edge_detector(k, press_raw[k], press_pulse, button_state)
 
         # update lamp mode and movement timer
         lamp_controller(press_pulse, motion[k], movement_timer, lamp_state)
+        lamp_output: int = compute_lamp_output(lamp_state.current, movement_timer.current)
+
+        # --- MONITOR GROUP B ---
+        monitor_output_consistency(k, lamp_state.current, lamp_output, movement_timer.current)
+
+        # --- MONITOR GROUP C ---
+        monitor_numeric_safety(k, movement_timer.current, lamp_state.current)
 
         # print out variable and states
         print(f"- Press pulse: {press_pulse}\n- Timer: {movement_timer.current}\n- Lamp: {lamp_state.current.name}\n")

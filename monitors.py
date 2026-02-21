@@ -173,7 +173,7 @@ def run_lamp_trace(press_raw: list[bool], motion: list[bool]):
             print(f"[{property_id} FAIL] {explanation}\n")
 
         # print out variable and states (same variable names)
-        print(f"- Press pulse: {press_pulse}\n- Timer: {movement_timer.current}\n- Lamp: {lamp_state.current.name}\n")
+        print(f"- Press pulse: {press_pulse}\n- Timer: {movement_timer.current}\n- Lamp State: {lamp_state.current.name}\n- Lamp Output: {lamp_output}\n")
 
 # SIMULATE ONE TICK
 def simulate_tick(state, k: int, press_raw: bool, motion: bool, press_raw_history: list[bool]):

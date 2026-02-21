@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="48343a6f-48d2-4f33-8e28-7d5f2a621e0c" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monitors.py" beforeDir="false" afterPath="$PROJECT_DIR$/monitors.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -247,7 +248,7 @@
       <updated>1771550964104</updated>
       <workItem from="1771550966447" duration="3735000" />
       <workItem from="1771637743702" duration="4050000" />
-      <workItem from="1771641835635" duration="2060000" />
+      <workItem from="1771641835635" duration="2359000" />
     </task>
     <servers />
   </component>
@@ -255,6 +256,6 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/CS423_523_Lab03$monitors.coverage" NAME="monitors Coverage Results" MODIFIED="1771642112413" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/CS423_523_Lab03$monitors.coverage" NAME="monitors Coverage Results" MODIFIED="1771644193969" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

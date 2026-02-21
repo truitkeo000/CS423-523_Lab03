@@ -1,6 +1,6 @@
 from enum import Enum
 from selectors import SelectSelector
-from unittest import expectedFailure
+from dataclasses import dataclass
 
 # CS 423/523 Lab 3
 # Deliverable 1: Runtime monitors
@@ -44,46 +44,54 @@ def edge_detector(press_raw: bool, button_state: State):
     return press_raw and (not button_state.previous)  # return press_pulse
 
 # MONITOR GROUP A: EDGE DETECTOR CORRECTNESS
-def monitor_edge_detector(k: int, press_raw: bool, press_pulse: bool, button_state: State):
+def monitor_edge_detector(k: int, press_raw: bool, press_pulse: bool, button_state: State, press_raw_history: list[bool]):
     """Check A1, A2, A3 for edge detection correctness."""
     # --- A1 ---
     expected_pulse = press_raw and (not button_state.previous)
     if press_pulse != expected_pulse:
-        print(f"[A1 FAIL] Tick {k}: press_pulse={press_pulse}, expected {expected_pulse}")
+        return "A1", k, f"At tick {k}, expected press_pulse={expected_pulse} but observed {press_pulse}."
+
     # --- A2 ---
-    if k > 0:
-        expected_prev = press_raw_history[k-1]
-        if button_state.previous != expected_prev:
-            print(f"[A2 FAIL] Tick {k}: prev={button_state.previous}, expected {expected_prev}")
+    if button_state.current != press_raw:
+        return "A2", k, f"At tick {k}, expected prev={press_raw} but observed {button_state.current}."
+
     # --- A3 ---
     if k > 0 and press_raw_history[k-1] and press_raw:
         if press_pulse != False:
-            print(f"[A3 FAIL] Tick {k}: press_pulse={press_pulse} while button held")
+            return "A3", k, f"At tick {k}, button held high across ticks so expected press_pulse=0 but observed 1."
+
+    return None
+
 
 # MONITOR GROUP B: MODE/OUTPUT CONSISTENCY (INVARIANTS)
 def monitor_output_consistency(k: int, mode: Mode, lamp: int, movement_timer: int):
     # --- B1 ---
     if mode == Mode.OFF and lamp != 0:
-        print(f"[B1 FAIL] TICK {k}: mode=OFF, expected lamp=0, but observed lamp={lamp}\n")
+        return "B1", k, f"At tick {k}, mode=OFF, expected lamp=0, but observed lamp={lamp}."
 
     # --- B2 ---
     if mode == Mode.ON and lamp != 1:
-        print(f"[B2 FAIL] TICK {k}: mode=ON, expected lamp=1, but observed lamp={lamp}\n")
+        return "B2", k, f"At tick {k}, mode=ON, expected lamp=1, but observed lamp={lamp}."
 
     # --- B3 ---
     expected: int = 1 if movement_timer > 0 else 0
     if mode == Mode.AUTO and lamp != expected:
-      print(f"[B3 FAIL] TICK {k}: mode=AUTO, movement_timer={movement_timer}, expected={expected}, but observed lamp={lamp}\n")
+        return "B3", k, f"At tick {k}, mode=AUTO, movement_timer={movement_timer}, expected lamp={expected}, but observed lamp={lamp}."
+
+    return None
+
 
 # MONITOR GROUP C: NUMERIC SAFETY (INVARIANTS)
 def monitor_numeric_safety(k: int, movement_timer: int, mode: Mode):
     # --- C1 ---
     if movement_timer < 0 or  movement_timer > 10:
-        print(f"[C1 FAIL] TICK {k}: expected movement_timer to be between 0 and 10, but observed movement_timer={movement_timer}\n")
+        return "C1", k, f"At tick {k}, expected movement_timer between 0 and 10, but observed movement_timer={movement_timer}."
 
     # --- C2 ---
     if mode == Mode.OFF and movement_timer != 0:
-        print(f"[C2 FAIL] TICK {k}: mode=OFF, expected movement_timer=0, but observed movement_timer={movement_timer}\n")
+        return "C2", k, f"At tick {k}, mode=OFF, expected movement_timer=0, but observed movement_timer={movement_timer}."
+
+    return None
 
 # LAMP CONTROLLER HELPERS
 def switch_mode_to_on(press_pulse: bool, lamp_state: State):
@@ -145,29 +153,57 @@ def run_lamp_trace(press_raw: list[bool], motion: list[bool]):
     movement_timer = State(INITIAL_TIMER_VALUE, INITIAL_TIMER_VALUE)    # aka x
     lamp_state = State(Mode.OFF, Mode.OFF)                              # aka mode
 
-    global press_raw_history
-    press_raw_history = press_raw.copy()  # needed for monitor checks
+    press_raw_history = press_raw.copy()
+
+    state = {
+        "button_state": button_state,
+        "movement_timer": movement_timer,
+        "lamp_state": lamp_state,
+    }
 
     for k in range(len(press_raw)):
         print(f"Tick: {k}")
-        # compute press pulse
-        press_pulse = edge_detector(press_raw[k], button_state)
 
-        # --- MONITOR GROUP A ---
-        monitor_edge_detector(k, press_raw[k], press_pulse, button_state)
+        state, press_pulse, violation = simulate_tick(state, k, press_raw[k], motion[k], press_raw_history)
 
-        # update lamp mode and movement timer
-        lamp_controller(press_pulse, motion[k], movement_timer, lamp_state)
         lamp_output: int = compute_lamp_output(lamp_state.current, movement_timer.current)
 
-        # --- MONITOR GROUP B ---
-        monitor_output_consistency(k, lamp_state.current, lamp_output, movement_timer.current)
+        if violation is not None:
+            property_id, bad_k, explanation = violation
+            print(f"[{property_id} FAIL] {explanation}\n")
 
-        # --- MONITOR GROUP C ---
-        monitor_numeric_safety(k, movement_timer.current, lamp_state.current)
-
-        # print out variable and states
+        # print out variable and states (same variable names)
         print(f"- Press pulse: {press_pulse}\n- Timer: {movement_timer.current}\n- Lamp: {lamp_state.current.name}\n")
+
+# SIMULATE ONE TICK
+def simulate_tick(state, k: int, press_raw: bool, motion: bool, press_raw_history: list[bool]):
+    button_state = state["button_state"]
+    movement_timer = state["movement_timer"]
+    lamp_state = state["lamp_state"]
+
+    # compute press pulse (uses your edge_detector)
+    press_pulse = edge_detector(press_raw, button_state)
+
+    # --- MONITOR GROUP A ---
+    violation = monitor_edge_detector(k, press_raw, press_pulse, button_state, press_raw_history)
+    if violation is not None:
+        return state, press_pulse, violation
+
+    # update lamp mode and movement timer (uses your lamp_controller)
+    lamp_controller(press_pulse, motion, movement_timer, lamp_state)
+    lamp_output: int = compute_lamp_output(lamp_state.current, movement_timer.current)
+
+    # --- MONITOR GROUP B ---
+    violation = monitor_output_consistency(k, lamp_state.current, lamp_output, movement_timer.current)
+    if violation is not None:
+        return state, press_pulse, violation
+
+    # --- MONITOR GROUP C ---
+    violation = monitor_numeric_safety(k, movement_timer.current, lamp_state.current)
+    if violation is not None:
+        return state, press_pulse, violation
+
+    return state, press_pulse, None
 
 # DEFINE INPUTS AND RUN TRACES
 def main() -> None:

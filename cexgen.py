@@ -1,6 +1,9 @@
 from collections import deque
-
 from monitors import State, Mode, INITIAL_TIMER_VALUE, simulate_tick
+
+# CS 423/523 Lab 3
+# Deliverable 2: Bounded BFS counterexample generator
+# Lindsey Nielsen and Keona Truitt
 
 HORIZON = INITIAL_TIMER_VALUE + 5
 

@@ -1,5 +1,5 @@
 Keona Truitt & Lindsey Nielsen
-Lab 3 – CS 423 read.md
+Lab 3 – CS 423 report.md
 
 # Shortest Counterexamples for Two Buggy Variants
 
